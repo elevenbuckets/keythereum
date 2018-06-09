@@ -178,12 +178,31 @@ module.exports = {
    * Used internally.
    */
   deriveKeyUsingScryptInNode: function (password, salt, options, cb) {
-    if (!isFunction(cb)) return this.deriveKeyUsingScryptInBrowser(password, salt, options);
-    require("scrypt").hash(password, {
-      N: options.kdfparams.n || this.constants.scrypt.n,
-      r: options.kdfparams.r || this.constants.scrypt.r,
-      p: options.kdfparams.p || this.constants.scrypt.p
-    }, options.kdfparams.dklen || this.constants.scrypt.dklen, salt).then(cb).catch(cb);
+    var self = this;
+    if (this.scrypt === null) this.scrypt = require("./lib/scrypt");
+    if (isFunction(this.scrypt)) {
+      this.scrypt = this.scrypt(options.kdfparams.memory || this.constants.scrypt.memory);
+    }
+    if (!isFunction(cb)) {
+      return Buffer.from(this.scrypt.to_hex(this.scrypt.crypto_scrypt(
+        password,
+        salt,
+        options.kdfparams.n || this.constants.scrypt.n,
+        options.kdfparams.r || this.constants.scrypt.r,
+        options.kdfparams.p || this.constants.scrypt.p,
+        options.kdfparams.dklen || this.constants.scrypt.dklen
+      )), "hex");
+    }
+    setTimeout(function () {
+      cb(Buffer.from(self.scrypt.to_hex(self.scrypt.crypto_scrypt(
+        password,
+        salt,
+        options.kdfparams.n || self.constants.scrypt.n,
+        options.kdfparams.r || self.constants.scrypt.r,
+        options.kdfparams.p || self.constants.scrypt.p,
+        options.kdfparams.dklen || self.constants.scrypt.dklen
+      )), "hex"));
+    }, 0);
   },
 
   /**
